@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def benchmark(voxelized_grid,spacing,surf):
+def benchmark(voxelized_grid,spacing,surf,key):
     '''calculating volume inside and outside + area of PyvVista calculated surface of object'''
     true_vol = surf.volume
     true_area = surf.area
@@ -20,17 +20,14 @@ def benchmark(voxelized_grid,spacing,surf):
 
     # 2. Extract boolean mask 
     is_inside = None
-    for key in ['mask', 'shell']:
-        try:
-            if key in pv_grid.cell_data:
-                is_inside = pv_grid.cell_data[key].view(np.bool_)
-                break
-            # Check dictionary-style access (fallback)
-            elif key in pv_grid:
-                is_inside = pv_grid[key].view(np.bool_)
-                break
-        except Exception:
-            continue
+    
+    if key in pv_grid.cell_data:
+        is_inside = pv_grid.cell_data[key].view(np.bool_)
+        # Check dictionary-style access (fallback)
+    elif key in pv_grid:
+        is_inside = pv_grid[key].view(np.bool_)
+            
+  
 
     if is_inside is None:
         raise KeyError("Could not find 'mask' or 'shell' in any provided data format.")
@@ -49,7 +46,7 @@ def benchmark(voxelized_grid,spacing,surf):
     true_vol_outside = total_bb_volume - true_vol
 
     #area----------------------------------------------------------
-    tot_masked_area=pv_grid.extract_surface().area
+    tot_masked_area = pv_grid.extract_surface(algorithm='dataset_surface').area
     shell_cells = pv_grid.extract_cells(is_inside)
     masked_extract=shell_cells.extract_surface(algorithm='dataset_surface')
     masked_area_extract = masked_extract.area    
@@ -64,7 +61,7 @@ def benchmark(voxelized_grid,spacing,surf):
     masked_area_reconstruct=masked_extract.reconstruct_surface().area   #'dangerous' bc. it can change the topology of the surface, but we want to test it anyway
     '''
     #Printing results----------------------------------------------
-    print(f"surface area: {true_area:.6f}")
+    '''print(f"surface area: {true_area:.6f}")
     print(f"masked surface area (extracted surface, triangulate, reconstructed_surface): {[f'{e:.6f}' for e in masked_area]}")
     print(f"Area Error %: {[f'{e:.2f}%' for e in area_error_percent]}")
 
@@ -75,6 +72,6 @@ def benchmark(voxelized_grid,spacing,surf):
     print(f"masked outside volume: {masked_vol_outside:.6f}")
     print(f"true volume outside: {true_vol_outside:.6f}")
     print(f"Total voxelized Volume (Grid): {tot_vol_voxelized:.6f}")
-    print(f"Total un-voxelized Volume (Grid): {total_bb_volume-tot_vol_voxelized:.6f}")
+    print(f"Total un-voxelized Volume (Grid): {total_bb_volume-tot_vol_voxelized:.6f}")'''
 
     return masked_vol,masked_area, vol_error_percent, area_error_percent 
